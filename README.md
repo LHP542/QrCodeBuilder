@@ -22,19 +22,26 @@ Für Windows und Linux, ohne Installation.
 - **Größe in Pixeln exakt wählbar**, eigene Farben, transparenter Hintergrund.
 - **Warnt, bevor es peinlich wird:** zu wenig Kontrast, vertauschte Farben oder zu
   viel Text werden sofort angezeigt.
+- **Aktualisiert sich selbst** aus dem Netzwerkordner und zeigt vorher, was neu ist.
 - **Merkt sich die Darstellung**, aber nie die Inhalte — Texte und Passwörter
   werden nicht gespeichert.
 - Deutsch und Englisch, Umschaltung ohne Neustart.
 
 ## Installation
 
-Fertige Pakete gibt es auf der [Releases-Seite](https://github.com/LHP542/QrCodeBuilder/releases).
+Die aktuelle Version liegt im Netzwerkordner
 
-**Windows:** `QrCodeBuilder-X.Y.Z-win-x64.zip` herunterladen, in einen beliebigen
-Ordner entpacken und `QrCodeBuilder.exe` starten. Es wird nichts installiert und
-keine Administratorberechtigung gebraucht.
+```
+\\samba01\542$\5424_IT-Basis-Dienste\QrCodeBuilder
+```
 
-**Linux (AppImage):** `QrCodeBuilder-X.Y.Z-x86_64.AppImage` herunterladen,
+**Windows:** `QrCodeBuilder-X.Y.Z-win-x64.zip` (die höchste Versionsnummer) in
+einen eigenen Ordner entpacken, z. B. `C:\Tools\QrCodeBuilder`, und
+`QrCodeBuilder.exe` starten. Es wird nichts installiert und keine
+Administratorberechtigung gebraucht. Alle späteren Versionen kommen von selbst
+(siehe [Updates](#updates)).
+
+**Linux (AppImage):** `QrCodeBuilder-X.Y.Z-x86_64.AppImage` kopieren,
 ausführbar machen und starten:
 
 ```bash
@@ -113,8 +120,11 @@ eigenen Farben.
 
 ## Einstellungen
 
-Das Zahnrad oben rechts öffnet die Einstellungen. Dort wird die **Sprache**
-umgestellt (Deutsch/Englisch); die Umstellung wirkt sofort.
+Das Zahnrad oben rechts öffnet die Einstellungen:
+
+- **Sprache** — Deutsch oder Englisch, die Umstellung wirkt sofort.
+- **Updates** — der Netzwerkordner, aus dem neue Versionen kommen. Normalerweise
+  nichts ändern. Ein leeres Feld schaltet die Update-Prüfung ab.
 
 ![Einstellungen](docs/einstellungen.png)
 
@@ -122,10 +132,24 @@ Das **ⓘ** daneben zeigt die Version und prüft auf Updates.
 
 ## Updates
 
-Beim Start schaut das Programm im Hintergrund nach einer neueren Version. Gibt
-es eine, fragt es nach — **ohne Zustimmung wird nichts installiert**. Nach
-„Update installieren" lädt es die neue Version, ersetzt sich selbst und startet
-neu. Manuell geht das über **ⓘ → Auf Updates prüfen**.
+Neue Versionen kommen aus dem Netzwerkordner
+`\\samba01\542$\5424_IT-Basis-Dienste\QrCodeBuilder` — Internet wird dafür
+nicht gebraucht.
+
+Beim Start schaut das Programm dort im Hintergrund nach. Liegt eine neuere
+Version bereit, erscheint dieser Dialog. Unter **WAS IST NEU** steht, was sich
+geändert hat; wer mehrere Versionen übersprungen hat, sieht die Änderungen aller
+Versionen:
+
+![Update-Dialog mit Versionshinweisen](docs/update.png)
+
+**Ohne Zustimmung wird nichts installiert.** Nach „Update installieren" kopiert
+das Programm die neue Version, ersetzt sich selbst und startet neu — die
+Einstellungen bleiben erhalten. „Später" fragt beim nächsten Start wieder.
+
+Manuell geht das über **ⓘ → Auf Updates prüfen**. Ist der Netzwerkordner gerade
+nicht erreichbar (unterwegs, ohne VPN), steht das dort; das Programm arbeitet
+ganz normal weiter.
 
 ![Über-Fenster](docs/ueber.png)
 
@@ -156,8 +180,22 @@ dotnet test
 dotnet run --project QrCodeBuilder
 ```
 
-Release: VS-Code-Task „release (tag + push)" — prüft den Git-Zustand, setzt den
-Tag und stößt die GitHub-Action an, die alle Pakete baut.
+### Neue Version ausrollen
+
+1. In `CHANGELOG.md` einen Abschnitt `## X.Y.Z — Datum` schreiben — für die
+   Nutzer formuliert, er erscheint wörtlich im Update-Dialog. Ohne Abschnitt
+   bricht das Release ab.
+2. VS-Code-Task „release (tag + push)" — prüft den Git-Zustand, setzt den Tag
+   und stößt die GitHub-Action an, die alle Pakete und die Notes-Datei baut.
+3. Wenn die Action grün ist, auf den Share bringen:
+
+   ```powershell
+   scripts\publish-share.ps1 -Version X.Y.Z
+   ```
+
+   Das Skript kopiert zuerst die Versionshinweise, dann die Pakete (über einen
+   Zwischennamen, damit kein Client ein halb kopiertes Paket sieht). Ab dann
+   bieten die Clients das Update beim nächsten Start an.
 
 ### Bilder neu erzeugen
 
@@ -170,8 +208,8 @@ dotnet run --project QrCodeBuilder -- --screenshots screenshots
 
 Danach die deutschen Varianten (`main-text-de.png` → `hauptfenster.png`,
 `main-wifi-de.png` → `wlan.png`, `main-warning-de.png` → `hinweis.png`,
-`settings-de.png` → `einstellungen.png`, `about-de.png` → `ueber.png`) nach `docs/`
-kopieren.
+`settings-de.png` → `einstellungen.png`, `about-de.png` → `ueber.png`,
+`update-de.png` → `update.png`) nach `docs/` kopieren.
 
 ## Lizenz
 

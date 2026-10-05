@@ -4,7 +4,7 @@
         xmlns:controls="using:QrCodeBuilder.Controls"
         xmlns:loc="using:QrCodeBuilder.Localization"
         x:Class="QrCodeBuilder.Views.UpdatePromptWindow"
-        Width="420" SizeToContent="Height"
+        Width="500" SizeToContent="Height"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Title="{loc:Tr Window_Update}"
@@ -17,6 +17,17 @@
                 <TextBlock x:Name="Headline" Classes="h2" TextWrapping="Wrap" />
                 <TextBlock x:Name="Body" Classes="secondary" TextWrapping="Wrap" FontSize="12" />
             </StackPanel>
+
+            <Border Classes="card" x:Name="NotesCard" IsVisible="False">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="{loc:Tr Update_Notes}" Classes="section-label" />
+                    <!-- Rechter Rand für den Rollbalken: Avalonia legt ihn ÜBER den Inhalt. -->
+                    <ScrollViewer MaxHeight="260" HorizontalScrollBarVisibility="Disabled">
+                        <SelectableTextBlock x:Name="Notes" TextWrapping="Wrap" FontSize="12"
+                                             Margin="0,0,14,0" />
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
 
             <ProgressBar x:Name="Progress" IsVisible="False" Minimum="0" Maximum="1" />
             <TextBlock x:Name="Status" Classes="muted" FontSize="11" IsVisible="False" />

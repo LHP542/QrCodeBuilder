@@ -10,6 +10,10 @@ permissions:
 
 # Native Builds pro OS mit Tests, Linux zusätzlich als AppImage.
 #
+# Die App holt Updates NICHT von hier, sondern aus dem Netzwerkordner
+# \\samba01\542$\5424_IT-Basis-Dienste\QrCodeBuilder. Das Release ist die Bauquelle;
+# scripts/publish-share.ps1 kopiert Pakete und Notes von hier auf den Share.
+#
 # Jeder Job hängt seine Pakete direkt ans Release (kein upload-artifact-Umweg:
 # der zählt auf die kontoweite Artefakt-Quota). Die Jobs laufen nacheinander,
 # damit sie nicht um die Erstellung desselben Releases rennen.
@@ -37,6 +41,13 @@ jobs:
             echo "v=0.0.0-dev.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
           fi
 
+      # Vor allem anderen: ohne Abschnitt in CHANGELOG.md bricht das Release hier ab,
+      # statt ein Paket ohne Versionshinweise auf den Share zu bringen.
+      - name: Versionshinweise aus CHANGELOG.md
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: bash scripts/extract-notes.sh "${{ steps.ver.outputs.v }}"
+
       - name: Test
         run: dotnet test QrCodeBuilder.Tests/QrCodeBuilder.Tests.csproj -c Release
 
@@ -56,8 +67,12 @@ jobs:
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v3
         with:
-          files: QrCodeBuilder-*-win-x64.zip
-          generate_release_notes: true
+          # Der Release-Text ist derselbe wie im Update-Dialog der App; die
+          # Notes-Datei hängt mit dran, damit publish-share.ps1 sie mitnimmt.
+          body_path: QrCodeBuilder-${{ steps.ver.outputs.v }}-notes.md
+          files: |
+            QrCodeBuilder-*-win-x64.zip
+            QrCodeBuilder-*-notes.md
           fail_on_unmatched_files: true
 
   build-linux:
@@ -107,5 +122,4 @@ jobs:
           files: |
             QrCodeBuilder-*-linux-x64.tar.gz
             QrCodeBuilder-*-x86_64.AppImage
-          generate_release_notes: true
           fail_on_unmatched_files: true

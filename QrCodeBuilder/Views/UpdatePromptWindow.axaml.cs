@@ -14,8 +14,7 @@ namespace QrCodeBuilder.Views;
 /// </summary>
 public partial class UpdatePromptWindow : ChromeWindow
 {
-    private readonly UpdateService? _updateService;
-    private readonly string? _assetUrl;
+    private readonly string? _packagePath;
 
     // Parameterloser Ctor für den XAML-Designer.
     public UpdatePromptWindow()
@@ -23,13 +22,16 @@ public partial class UpdatePromptWindow : ChromeWindow
         InitializeComponent();
     }
 
-    public UpdatePromptWindow(UpdateService updateService, string latestVersion, string assetUrl) : this()
+    public UpdatePromptWindow(UpdateService updateService, UpdateCheckResult result) : this()
     {
-        _updateService = updateService;
-        _assetUrl = assetUrl;
+        _packagePath = result.PackagePath;
 
-        Headline.Text = L.F("Update_Headline", latestVersion);
+        Headline.Text = L.F("Update_Headline", result.LatestVersion);
         Body.Text = L.F("Update_Body", updateService.CurrentVersion);
+
+        // Versionshinweise aus dem Update-Ordner — fehlen sie, bleibt die Karte weg.
+        ReleaseNotesView.Show(Notes, result.ReleaseNotes);
+        NotesCard.IsVisible = !string.IsNullOrWhiteSpace(result.ReleaseNotes);
 
         LaterButton.Click += (_, _) => Close();
         InstallButton.Click += OnInstall;
@@ -37,7 +39,7 @@ public partial class UpdatePromptWindow : ChromeWindow
 
     private async void OnInstall(object? sender, RoutedEventArgs e)
     {
-        if (_updateService is null || _assetUrl is null) return;
+        if (_packagePath is null) return;
 
         InstallButton.IsEnabled = false;
         LaterButton.IsEnabled = false;
@@ -50,7 +52,7 @@ public partial class UpdatePromptWindow : ChromeWindow
             Status.Text = L.F("Update_Downloading", (int)(value * 100));
         }));
 
-        var started = await _updateService.DownloadAndApplyAsync(_assetUrl, progress);
+        var started = await UpdateService.DownloadAndApplyAsync(_packagePath, progress);
 
         if (!started)
         {

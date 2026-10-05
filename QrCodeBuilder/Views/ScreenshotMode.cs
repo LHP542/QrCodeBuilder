@@ -96,10 +96,28 @@ internal static class ScreenshotMode
 
             await CaptureAsync(new SettingsWindow(new SettingsWindowViewModel(settings)), directory, $"settings-{iso}.png");
 
-            using var updates = new UpdateService();
+            var updates = new UpdateService(() => null);
             await CaptureAsync(new AboutWindow(updates), directory, $"about-{iso}.png");
+
+            await CaptureAsync(new UpdatePromptWindow(updates, DemoUpdate), directory, $"update-{iso}.png");
         }
     }
+
+    /// <summary>Erfundenes Update für das Bild des Update-Dialogs — es wird nichts installiert.</summary>
+    private static readonly UpdateCheckResult DemoUpdate = new(
+        UpdateAvailable: true,
+        LatestVersion: "0.3.0",
+        PackagePath: "demo.zip",
+        ReleaseNotes: """
+            ## 0.3.0 — Beispiel
+
+            - Neu: Kontakt (vCard) als Inhaltstyp
+            - Behoben: Dateiname bei sehr langen Links
+
+            ## 0.2.0 — Beispiel
+
+            - Updates und Versionshinweise kommen aus dem Netzwerkordner
+            """);
 
     /// <summary>
     /// Jedes Bild bekommt frische Einstellungen — sonst übernimmt das nächste Bild die

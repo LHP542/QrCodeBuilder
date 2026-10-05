@@ -6,7 +6,7 @@
         xmlns:vm="using:QrCodeBuilder.ViewModels"
         x:Class="QrCodeBuilder.Views.SettingsWindow"
         x:DataType="vm:SettingsWindowViewModel"
-        Width="420" SizeToContent="Height"
+        Width="480" SizeToContent="Height"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Title="{loc:Tr Window_Settings}"
@@ -22,6 +22,15 @@
                               SelectedItem="{Binding SelectedCulture}"
                               HorizontalAlignment="Stretch" />
                     <TextBlock Text="{loc:Tr Settings_UiLanguage_Hint}" Classes="muted"
+                               FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{loc:Tr Settings_Section_Updates}" Classes="section-label" />
+                    <TextBox Text="{Binding UpdateChannel}" FontSize="12" />
+                    <TextBlock Text="{loc:Tr Settings_UpdateChannel_Hint}" Classes="muted"
                                FontSize="11" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>

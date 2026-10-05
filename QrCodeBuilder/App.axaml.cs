@@ -111,15 +111,15 @@ public partial class App : Application
         {
             var result = await updateService.CheckForUpdateAsync().ConfigureAwait(true);
 
-            // Ohne Asset für diese Plattform gäbe es nichts zu installieren.
-            if (!result.UpdateAvailable || result.AssetUrl is null || result.LatestVersion is null)
+            // Ohne Paket für diese Plattform gäbe es nichts zu installieren.
+            if (!result.CanInstall)
             {
                 return;
             }
 
             Log.Info("Update {Version} verfügbar — Nutzer wird gefragt.", result.LatestVersion);
 
-            var prompt = new UpdatePromptWindow(updateService, result.LatestVersion, result.AssetUrl);
+            var prompt = new UpdatePromptWindow(updateService, result);
             await prompt.ShowDialog(window);
         }
         catch (Exception ex)
@@ -133,8 +133,10 @@ public partial class App : Application
     {
         var services = new ServiceCollection();
 
-        services.AddSingleton<UpdateService>();
         services.AddSingleton(_ => new SettingsService(SettingsService.DefaultDirectory));
+        // Der Ordner wird bei jeder Prüfung frisch gelesen — eine Änderung in den
+        // Einstellungen wirkt damit ohne Neustart.
+        services.AddSingleton(sp => new UpdateService(() => sp.GetRequiredService<SettingsService>().Load().UpdateChannel));
         services.AddSingleton<ISaveFileDialog>(_ => new StorageSaveFileDialog(mainWindow));
         services.AddSingleton<IImageClipboard>(_ => new AvaloniaImageClipboard(mainWindow));
 

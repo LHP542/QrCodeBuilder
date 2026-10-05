@@ -1,47 +1,55 @@
 using System.Diagnostics;
-using System.Net;
-using System.Net.Http.Json;
+using System.IO.Compression;
 using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text.Json.Serialization;
 using NLog;
 
 namespace QrCodeBuilder.Services;
 
-public sealed record UpdateCheckResult(bool UpdateAvailable, string? LatestVersion, string? AssetUrl, string? ReleaseUrl);
+/// <summary>Ergebnis einer Update-Prüfung.</summary>
+/// <param name="LatestVersion">Neueste Version im Ordner, null wenn keine gefunden.</param>
+/// <param name="PackagePath">Paket für diese Plattform, null wenn keins passt.</param>
+/// <param name="ReleaseNotes">Versionshinweise aller übersprungenen Versionen, neueste zuerst.</param>
+/// <param name="Problem">Warum nicht geprüft werden konnte — für die Anzeige im Über-Fenster.</param>
+public sealed record UpdateCheckResult(
+    bool UpdateAvailable,
+    string? LatestVersion,
+    string? PackagePath,
+    string? ReleaseNotes,
+    UpdateProblem Problem = UpdateProblem.None)
+{
+    public bool CanInstall => UpdateAvailable && PackagePath is not null;
+}
+
+public enum UpdateProblem
+{
+    None,
+    NoChannel,
+    Unreachable,
+}
 
 /// <summary>
-/// Update-Check UND echtes Self-Update gegen GitHub Releases (Kroste-Standard).
-/// Proxy-aware, nicht blockierend, Installation nur nach Zustimmung.
+/// Update-Prüfung und echtes Self-Update gegen den Ordner-Kanal im Firmennetz
+/// (siehe <see cref="UpdateChannel"/>). Ablauf nach Kroste-Standard: prüfen →
+/// Zustimmung → Paket ERST kopieren, DANN entpacken → Austausch-Skript starten →
+/// App beenden (<see cref="TerminateForUpdate"/>).
 /// </summary>
-public sealed class UpdateService : IDisposable
+public sealed class UpdateService
 {
-    private const string Owner = "LHP542";
-    private const string Repo = "QrCodeBuilder";
-
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
-    private readonly HttpClient _http;
+    private readonly Func<string?> _channel;
     private UpdateCheckResult? _cached;
 
-    public UpdateService()
+    /// <param name="channel">Liefert den aktuell eingestellten Update-Ordner (Einstellungen).</param>
+    public UpdateService(Func<string?> channel)
     {
-        // Firmen-Proxy (Kerberos/Negotiate) auf dem Arbeitslaptop; unter Linux ein No-Op.
-        var handler = new HttpClientHandler
-        {
-            Proxy = WebRequest.DefaultWebProxy,
-            DefaultProxyCredentials = CredentialCache.DefaultCredentials,
-        };
-
-        _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
-        _http.DefaultRequestHeaders.UserAgent.ParseAdd($"{Repo}/{AppVersion}");
-        _http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        _channel = channel ?? throw new ArgumentNullException(nameof(channel));
     }
 
     /// <summary>Instanz-Zugriff auf <see cref="AppVersion"/> — das AboutWindow bindet daran.</summary>
     public string CurrentVersion => AppVersion;
 
-    /// <summary>Version aus der Assembly (MinVer schreibt sie als InformationalVersion).</summary>
+    /// <summary>Version aus der Assembly (MinVer schreibt sie als InformationalVersion), ohne +sha.</summary>
     public static string AppVersion
     {
         get
@@ -51,78 +59,107 @@ public sealed class UpdateService : IDisposable
                       ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
                       ?? "0.0.0";
 
-            // Build-Metadaten (+sha) abschneiden.
             var plus = raw.IndexOf('+');
             return plus > 0 ? raw[..plus] : raw;
         }
     }
 
-    public async Task<UpdateCheckResult> CheckForUpdateAsync(CancellationToken cancellationToken = default)
+    /// <summary>Sieht im Ordner nach. Ergebnis wird zwischengespeichert; <paramref name="force"/> prüft neu.</summary>
+    public Task<UpdateCheckResult> CheckForUpdateAsync(bool force = false)
     {
-        if (_cached is not null)
+        if (!force && _cached is not null)
         {
-            return _cached;
+            return Task.FromResult(_cached);
         }
 
+        var channel = _channel()?.Trim();
+
+        if (!UpdateChannel.LooksLikeFolder(channel))
+        {
+            Log.Info("Kein gültiger Update-Ordner eingestellt ({Channel}).", channel ?? "leer");
+            return Task.FromResult(_cached = new UpdateCheckResult(false, null, null, null, UpdateProblem.NoChannel));
+        }
+
+        // Ein nicht erreichbares Netzlaufwerk kann Sekunden hängen — nie auf dem UI-Thread.
+        return Task.Run(() => _cached = Check(channel!, UpdateChannel.ParseInstalledVersion(AppVersion)));
+    }
+
+    /// <summary>Kern der Prüfung, ohne Cache und Assembly-Version — damit testbar.</summary>
+    public static UpdateCheckResult Check(string folder, Version installed)
+    {
         var stopwatch = Stopwatch.StartNew();
-        var url = $"https://api.github.com/repos/{Owner}/{Repo}/releases/latest";
+        var suffix = UpdateChannel.PackageSuffix(
+            OperatingSystem.IsWindows(),
+            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPIMAGE")));
 
         try
         {
-            Log.Info("Update-Check startet: {Url}", url);
+            var newest = UpdateChannel.FindNewestPackage(folder, suffix);
 
-            var release = await _http.GetFromJsonAsync<GitHubRelease>(url, cancellationToken).ConfigureAwait(false);
-
-            if (release?.TagName is null)
+            if (newest is null)
             {
-                Log.Warn("Update-Check ohne verwertbare Antwort nach {Ms} ms.", stopwatch.ElapsedMilliseconds);
-                return _cached = new UpdateCheckResult(false, null, null, null);
+                // Ein Notebook ohne Netzlaufwerk ist der Normalfall, nicht die Störung —
+                // deshalb Debug statt Warn/Error.
+                Log.Debug("Im Update-Ordner {Folder} liegt kein Paket *{Suffix} (oder er ist nicht erreichbar).", folder, suffix);
+                return new UpdateCheckResult(false, null, null, null, UpdateProblem.Unreachable);
             }
 
-            var latest = release.TagName.TrimStart('v', 'V');
-            var isNewer = IsNewer(latest, AppVersion);
-            var asset = SelectAsset(release, latest);
+            var (latest, path) = newest.Value;
+            var isNewer = latest > installed;
+            var notes = isNewer ? UpdateChannel.CollectReleaseNotes(folder, installed, latest) : null;
 
             Log.Info(
-                "Update-Check fertig nach {Ms} ms: aktuell {Current}, verfügbar {Latest}, neuer: {IsNewer}, Asset: {Asset}",
-                stopwatch.ElapsedMilliseconds, AppVersion, latest, isNewer, asset ?? "keins");
+                "Update-Prüfung nach {Ms} ms: installiert {Installed}, im Ordner {Latest}, neuer: {IsNewer}, Notes: {HasNotes}",
+                stopwatch.ElapsedMilliseconds, installed, latest, isNewer, notes is not null);
 
-            return _cached = new UpdateCheckResult(isNewer, latest, asset, release.HtmlUrl);
+            return new UpdateCheckResult(isNewer, latest.ToString(3), isNewer ? path : null, notes);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // Offline oder Proxy-Problem darf die App nie stören — nur loggen.
-            Log.Warn(ex, "Update-Check fehlgeschlagen nach {Ms} ms.", stopwatch.ElapsedMilliseconds);
-            return new UpdateCheckResult(false, null, null, null);
+            Log.Debug(ex, "Update-Ordner {Folder} nicht lesbar.", folder);
+            return new UpdateCheckResult(false, null, null, null, UpdateProblem.Unreachable);
         }
     }
 
     /// <summary>
-    /// Lädt das Asset und startet das plattformspezifische Austausch-Skript.
+    /// Kopiert das Paket lokal, bereitet es vor und startet das Austausch-Skript.
     /// Bei <c>true</c> MUSS der Aufrufer <see cref="TerminateForUpdate"/> rufen —
-    /// das Skript wartet auf das Prozessende, sonst hängt das Update bei 100 %.
+    /// das Skript wartet auf das Prozessende, sonst hängt das Update.
     /// </summary>
-    public async Task<bool> DownloadAndApplyAsync(
-        string assetUrl,
-        IProgress<double>? progress = null,
-        CancellationToken cancellationToken = default)
+    public static async Task<bool> DownloadAndApplyAsync(string packagePath, IProgress<double>? progress = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(assetUrl);
+        ArgumentException.ThrowIfNullOrWhiteSpace(packagePath);
 
         try
         {
-            var workDir = Path.Combine(Path.GetTempPath(), $"{Repo}-update-{Environment.ProcessId}");
+            var workDir = Path.Combine(Path.GetTempPath(), $"{UpdateChannel.AppName}-update-{Environment.ProcessId}");
+
+            if (Directory.Exists(workDir))
+            {
+                Directory.Delete(workDir, recursive: true);
+            }
+
             Directory.CreateDirectory(workDir);
 
-            var fileName = Path.GetFileName(new Uri(assetUrl).LocalPath);
-            var downloadPath = Path.Combine(workDir, fileName);
+            // Erst kopieren, dann entpacken: das Paket könnte zwischen Prüfung und Entpacken
+            // ausgetauscht werden, und ein Netzlaufwerk, das mitten im Entpacken wegbricht,
+            // hinterließe einen halb ersetzten Programmordner.
+            var localPackage = Path.Combine(workDir, Path.GetFileName(packagePath));
+            await CopyWithProgressAsync(packagePath, localPackage, progress).ConfigureAwait(false);
+            Log.Info("Update-Paket lokal kopiert: {Path}", localPackage);
 
-            await DownloadAsync(assetUrl, downloadPath, progress, cancellationToken).ConfigureAwait(false);
-            Log.Info("Update-Asset geladen: {Path}", downloadPath);
+            string script;
 
-            var script = OperatingSystem.IsWindows()
-                ? WriteWindowsInstaller(workDir, downloadPath)
-                : WriteLinuxInstaller(workDir, downloadPath);
+            if (OperatingSystem.IsWindows())
+            {
+                var payload = Path.Combine(workDir, "payload");
+                await Task.Run(() => ZipFile.ExtractToDirectory(localPackage, payload, overwriteFiles: true)).ConfigureAwait(false);
+                script = WriteWindowsInstaller(workDir, payload);
+            }
+            else
+            {
+                script = WriteLinuxInstaller(workDir, localPackage);
+            }
 
             Process.Start(new ProcessStartInfo
             {
@@ -162,58 +199,65 @@ public sealed class UpdateService : IDisposable
         Environment.Exit(0);
     }
 
-    private async Task DownloadAsync(string url, string targetPath, IProgress<double>? progress, CancellationToken cancellationToken)
+    /// <summary>Semantischer Vergleich — Stringvergleich stuft 1.10.0 fälschlich unter 1.9.0 ein.</summary>
+    public static bool IsNewer(string candidate, string current) =>
+        UpdateChannel.ParseInstalledVersion(candidate) > UpdateChannel.ParseInstalledVersion(current);
+
+    private static async Task CopyWithProgressAsync(string source, string target, IProgress<double>? progress)
     {
-        using var response = await _http
-            .GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-            .ConfigureAwait(false);
+        var buffer = new byte[1 << 20];
+        var copied = 0L;
 
-        response.EnsureSuccessStatusCode();
+        await using var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, useAsync: true);
+        await using var output = File.Create(target);
 
-        var total = response.Content.Headers.ContentLength ?? 0L;
-        var buffer = new byte[81920];
-        var read = 0L;
-
-        await using var source = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        await using var target = File.Create(targetPath);
-
+        var total = input.Length;
         int count;
-        while ((count = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+
+        while ((count = await input.ReadAsync(buffer).ConfigureAwait(false)) > 0)
         {
-            await target.WriteAsync(buffer.AsMemory(0, count), cancellationToken).ConfigureAwait(false);
-            read += count;
+            await output.WriteAsync(buffer.AsMemory(0, count)).ConfigureAwait(false);
+            copied += count;
 
             if (total > 0)
             {
-                progress?.Report((double)read / total);
+                progress?.Report((double)copied / total);
             }
         }
     }
 
     /// <summary>
-    /// Batch-Zeilen OHNE führende Einrückung schreiben — ein eingerücktes :label ist für cmd
-    /// kein gültiges Sprungziel, das goto scheitert still und die ALTE Version startet neu.
+    /// Batch-Zeilen OHNE führende Einrückung — ein eingerücktes :label ist für cmd kein
+    /// gültiges Sprungziel, das goto scheitert still und die ALTE Version startet neu.
+    /// Gewartet wird per Wait-Process statt tasklist-Schleife.
     /// </summary>
-    private static string WriteWindowsInstaller(string workDir, string zipPath)
+    private static string WriteWindowsInstaller(string workDir, string payloadDir)
     {
         var appDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
-        var exePath = Path.Combine(appDir, $"{Repo}.exe");
-        var extractDir = Path.Combine(workDir, "new");
-        var scriptPath = Path.Combine(workDir, "install.bat");
+        var exePath = Path.Combine(appDir, $"{UpdateChannel.AppName}.exe");
+        var logFile = Path.Combine(workDir, "update.log");
+        var pid = Environment.ProcessId;
 
-        var lines = new[]
-        {
+        string[] lines =
+        [
             "@echo off",
-            $"set LOG=\"{Path.Combine(workDir, "update.log")}\"",
-            $"echo Warte auf Prozessende {Environment.ProcessId} >> %LOG%",
-            $"powershell -NoProfile -Command \"Wait-Process -Id {Environment.ProcessId} -ErrorAction SilentlyContinue\"",
-            "timeout /t 2 /nobreak > nul",
-            $"powershell -NoProfile -Command \"Expand-Archive -LiteralPath '{zipPath}' -DestinationPath '{extractDir}' -Force\" >> %LOG% 2>&1",
-            $"xcopy /E /Y /I \"{extractDir}\\*\" \"{appDir}\\\" >> %LOG% 2>&1",
+            $"echo [%date% %time%] Warte auf Ende von PID {pid} >> \"{logFile}\"",
+            $"powershell -NoProfile -Command \"Wait-Process -Id {pid} -ErrorAction SilentlyContinue\"",
+            "rem Kurzer Nachlauf, damit Windows die Dateihandles freigibt.",
+            "ping -n 3 127.0.0.1 > nul",
+            $"echo [%date% %time%] Kopiere nach \"{appDir}\" >> \"{logFile}\"",
+            $"xcopy \"{payloadDir}\\*\" \"{appDir}\\\" /E /Y /I >> \"{logFile}\" 2>&1",
+            "if errorlevel 1 goto failed",
+            $"echo [%date% %time%] Starte neu >> \"{logFile}\"",
             $"start \"\" \"{exePath}\"",
-            "exit",
-        };
+            "goto ende",
+            ":failed",
+            $"echo [%date% %time%] FEHLER beim Kopieren >> \"{logFile}\"",
+            $"start \"\" \"{exePath}\"",
+            ":ende",
+        ];
 
+        var scriptPath = Path.Combine(workDir, "install.bat");
         File.WriteAllLines(scriptPath, lines);
         return scriptPath;
     }
@@ -230,13 +274,13 @@ public sealed class UpdateService : IDisposable
 
         var stateDir = Environment.GetEnvironmentVariable("XDG_STATE_HOME")
                        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "state");
-        var logPath = Path.Combine(stateDir, Repo, "update.log");
+        var logPath = Path.Combine(stateDir, UpdateChannel.AppName, "update.log");
 
         var body = new List<string>
         {
             "#!/bin/bash",
             $"mkdir -p \"$(dirname '{logPath}')\" 2>/dev/null || true",
-            $"exec >>'{logPath}' 2>&1 || exec >>/tmp/{Repo}-update.log 2>&1",
+            $"exec >>'{logPath}' 2>&1 || exec >>/tmp/{UpdateChannel.AppName}-update.log 2>&1",
             "set -x",
             $"while kill -0 {Environment.ProcessId} 2>/dev/null; do sleep 0.5; done",
             "sleep 1",
@@ -253,8 +297,8 @@ public sealed class UpdateService : IDisposable
         else
         {
             body.Add($"tar -xzf '{assetPath}' -C '{appDir}'");
-            body.Add($"chmod +x '{appDir}/{Repo}'");
-            body.Add($"setsid '{appDir}/{Repo}' >/dev/null 2>&1 &");
+            body.Add($"chmod +x '{appDir}/{UpdateChannel.AppName}'");
+            body.Add($"setsid '{appDir}/{UpdateChannel.AppName}' >/dev/null 2>&1 &");
         }
 
         body.Add("exit 0");
@@ -264,74 +308,9 @@ public sealed class UpdateService : IDisposable
 
         if (!OperatingSystem.IsWindows())
         {
-            File.SetUnixFileMode(
-                scriptPath,
-                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            File.SetUnixFileMode(scriptPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         }
 
         return scriptPath;
-    }
-
-    /// <summary>Wählt das Asset für die laufende Plattform. Namensschema kommt aus release.yml.</summary>
-    private static string? SelectAsset(GitHubRelease release, string version)
-    {
-        if (release.Assets is null || release.Assets.Count == 0)
-        {
-            return null;
-        }
-
-        var arch = RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "arm64" : "x64";
-
-        var candidates = OperatingSystem.IsWindows()
-            ? new[] { $"{Repo}-{version}-win-{arch}.zip" }
-            : new[] { $"{Repo}-{version}-x86_64.AppImage", $"{Repo}-{version}-linux-{arch}.tar.gz" };
-
-        foreach (var candidate in candidates)
-        {
-            var match = release.Assets.FirstOrDefault(a =>
-                string.Equals(a.Name, candidate, StringComparison.OrdinalIgnoreCase));
-
-            if (match?.BrowserDownloadUrl is not null)
-            {
-                return match.BrowserDownloadUrl;
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>Semantischer Vergleich — Stringvergleich stuft 1.10.0 fälschlich unter 1.9.0 ein.</summary>
-    public static bool IsNewer(string candidate, string current)
-    {
-        static Version Parse(string value)
-        {
-            var core = value.Split('-', '+')[0];
-            return Version.TryParse(core, out var parsed) ? parsed : new Version(0, 0, 0);
-        }
-
-        return Parse(candidate) > Parse(current);
-    }
-
-    public void Dispose() => _http.Dispose();
-
-    private sealed record GitHubRelease
-    {
-        [JsonPropertyName("tag_name")]
-        public string? TagName { get; init; }
-
-        [JsonPropertyName("html_url")]
-        public string? HtmlUrl { get; init; }
-
-        [JsonPropertyName("assets")]
-        public List<GitHubAsset>? Assets { get; init; }
-    }
-
-    private sealed record GitHubAsset
-    {
-        [JsonPropertyName("name")]
-        public string? Name { get; init; }
-
-        [JsonPropertyName("browser_download_url")]
-        public string? BrowserDownloadUrl { get; init; }
     }
 }

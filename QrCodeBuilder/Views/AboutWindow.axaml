@@ -4,7 +4,7 @@
         xmlns:controls="using:QrCodeBuilder.Controls"
         xmlns:loc="using:QrCodeBuilder.Localization"
         x:Class="QrCodeBuilder.Views.AboutWindow"
-        Width="420" SizeToContent="Height"
+        Width="460" SizeToContent="Height"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Title="{loc:Tr Window_About}"
@@ -30,7 +30,7 @@
                                Margin="0,0,0,6" TextWrapping="Wrap" />
                 </WrapPanel>
 
-                <!-- Erscheint erst, wenn die Prüfung ein passendes Asset gefunden hat.
+                <!-- Erscheint erst, wenn die Prüfung ein passendes Paket gefunden hat.
                      Ohne diesen Knopf wäre der Dialog eine reine Benachrichtigung — der
                      Kroste-Standard verlangt echtes Self-Update. -->
                 <Button x:Name="InstallButton" Classes="accent"
@@ -38,6 +38,16 @@
                         HorizontalAlignment="Left" />
                 <ProgressBar x:Name="UpdateProgress" IsVisible="False"
                              Minimum="0" Maximum="1" />
+
+                <Border Classes="card" x:Name="NotesCard" IsVisible="False">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="{loc:Tr Update_Notes}" Classes="section-label" />
+                        <ScrollViewer MaxHeight="220" HorizontalScrollBarVisibility="Disabled">
+                            <SelectableTextBlock x:Name="Notes" TextWrapping="Wrap" FontSize="12"
+                                                 Margin="0,0,14,0" />
+                        </ScrollViewer>
+                    </StackPanel>
+                </Border>
             </StackPanel>
 
             <WrapPanel Orientation="Horizontal">

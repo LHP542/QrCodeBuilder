@@ -5,3 +5,4 @@ packaging/linux/AppRun text eol=lf
 *.desktop text eol=lf
 *.png binary
 *.ico binary
+*.md text eol=lf

@@ -70,6 +70,8 @@
   <!-- ============ Einstellungen ============ -->
   <data name="Settings_Section_UiLanguage" xml:space="preserve"><value>LANGUAGE</value></data>
   <data name="Settings_UiLanguage_Hint" xml:space="preserve"><value>Takes effect immediately in all windows.</value></data>
+  <data name="Settings_Section_Updates" xml:space="preserve"><value>UPDATES</value></data>
+  <data name="Settings_UpdateChannel_Hint" xml:space="preserve"><value>Network folder containing the update packages and release notes. Checked at every start.</value></data>
   <data name="Common_Close" xml:space="preserve"><value>Close</value></data>
   <data name="Common_Later" xml:space="preserve"><value>Later</value></data>
 
@@ -82,7 +84,9 @@
   <data name="About_CheckUpdates" xml:space="preserve"><value>Check for updates</value></data>
   <data name="About_Checking" xml:space="preserve"><value>Checking …</value></data>
   <data name="About_UpdateAvailable" xml:space="preserve"><value>Version {0} available!</value></data>
-  <data name="About_NoAccess" xml:space="preserve"><value>No access to GitHub.</value></data>
+  <data name="About_NoChannel" xml:space="preserve"><value>No update folder set (see Settings).</value></data>
+  <data name="About_Unreachable" xml:space="preserve"><value>Update folder not reachable.</value></data>
+  <data name="Update_Notes" xml:space="preserve"><value>WHAT'S NEW</value></data>
   <data name="About_UpToDate" xml:space="preserve"><value>You have the latest version.</value></data>
   <data name="About_CheckFailed" xml:space="preserve"><value>Check failed.</value></data>
   <data name="About_Version" xml:space="preserve"><value>Version {0}</value></data>

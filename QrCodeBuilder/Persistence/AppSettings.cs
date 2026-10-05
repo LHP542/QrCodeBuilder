@@ -22,5 +22,10 @@ public sealed record AppSettings
 
     public bool QuietZone { get; init; } = true;
 
+    /// <summary>Netzwerkordner mit den Update-Paketen und Versionshinweisen.</summary>
+    public string? UpdateChannel { get; init; } = DefaultUpdateChannel;
+
+    public const string DefaultUpdateChannel = @"\\samba01\542$\5424_IT-Basis-Dienste\QrCodeBuilder";
+
     public static AppSettings Default { get; } = new();
 }

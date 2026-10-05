@@ -70,6 +70,8 @@
   <!-- ============ Einstellungen ============ -->
   <data name="Settings_Section_UiLanguage" xml:space="preserve"><value>SPRACHE</value></data>
   <data name="Settings_UiLanguage_Hint" xml:space="preserve"><value>Wirkt sofort in allen Fenstern.</value></data>
+  <data name="Settings_Section_Updates" xml:space="preserve"><value>UPDATES</value></data>
+  <data name="Settings_UpdateChannel_Hint" xml:space="preserve"><value>Netzwerkordner mit den Update-Paketen und Versionshinweisen. Wird bei jedem Start geprüft.</value></data>
   <data name="Common_Close" xml:space="preserve"><value>Schließen</value></data>
   <data name="Common_Later" xml:space="preserve"><value>Später</value></data>
 
@@ -82,7 +84,9 @@
   <data name="About_CheckUpdates" xml:space="preserve"><value>Auf Updates prüfen</value></data>
   <data name="About_Checking" xml:space="preserve"><value>Prüfe …</value></data>
   <data name="About_UpdateAvailable" xml:space="preserve"><value>Version {0} verfügbar!</value></data>
-  <data name="About_NoAccess" xml:space="preserve"><value>Kein Zugriff auf GitHub.</value></data>
+  <data name="About_NoChannel" xml:space="preserve"><value>Kein Update-Ordner eingestellt (siehe Einstellungen).</value></data>
+  <data name="About_Unreachable" xml:space="preserve"><value>Update-Ordner nicht erreichbar.</value></data>
+  <data name="Update_Notes" xml:space="preserve"><value>WAS IST NEU</value></data>
   <data name="About_UpToDate" xml:space="preserve"><value>Du hast die aktuelle Version.</value></data>
   <data name="About_CheckFailed" xml:space="preserve"><value>Prüfung fehlgeschlagen.</value></data>
   <data name="About_Version" xml:space="preserve"><value>Version {0}</value></data>

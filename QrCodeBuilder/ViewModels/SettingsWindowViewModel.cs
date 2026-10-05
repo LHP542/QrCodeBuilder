@@ -30,9 +30,21 @@ public sealed partial class SettingsWindowViewModel : ViewModelBase
 
         _selectedCulture = Cultures.FirstOrDefault(c => c.Iso == LocalizationService.Instance.CurrentIso)
                            ?? Cultures[0];
+
+        _updateChannel = _settingsService.Load().UpdateChannel ?? string.Empty;
     }
 
     public IReadOnlyList<CultureOption> Cultures { get; }
+
+    /// <summary>Netzwerkordner für Updates. Leer schaltet die Update-Prüfung ab.</summary>
+    [ObservableProperty]
+    private string _updateChannel;
+
+    partial void OnUpdateChannelChanged(string value)
+    {
+        _settingsService.Save(_settingsService.Load() with { UpdateChannel = value.Trim() });
+        Log.Info("Update-Ordner geändert auf {Channel}.", value.Trim());
+    }
 
     partial void OnSelectedCultureChanged(CultureOption value)
     {

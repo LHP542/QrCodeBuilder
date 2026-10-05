@@ -17,7 +17,7 @@ public partial class AboutWindow : ChromeWindow
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
     private readonly UpdateService? _updateService;
-    private string? _assetUrl;
+    private string? _packagePath;
 
     // Parameterloser Ctor für den XAML-Designer.
     public AboutWindow()
@@ -42,17 +42,23 @@ public partial class AboutWindow : ChromeWindow
         UpdateResult.Text = L.T("About_Checking");
         try
         {
-            var result = await _updateService.CheckForUpdateAsync();
-            UpdateResult.Text = result.UpdateAvailable
-                ? L.F("About_UpdateAvailable", result.LatestVersion)
-                : result.LatestVersion is null
-                    ? L.T("About_NoAccess")
-                    : L.T("About_UpToDate");
+            // Auf Knopfdruck immer frisch nachsehen — der Ordner kann sich seit dem Start geändert haben.
+            var result = await _updateService.CheckForUpdateAsync(force: true);
+            UpdateResult.Text = result switch
+            {
+                { UpdateAvailable: true } => L.F("About_UpdateAvailable", result.LatestVersion),
+                { Problem: UpdateProblem.NoChannel } => L.T("About_NoChannel"),
+                { Problem: UpdateProblem.Unreachable } => L.T("About_Unreachable"),
+                _ => L.T("About_UpToDate"),
+            };
 
-            // Ohne Asset für diese Plattform gibt es nichts zu installieren —
+            // Ohne Paket für diese Plattform gibt es nichts zu installieren —
             // dann bleibt es bei der Meldung.
-            _assetUrl = result.UpdateAvailable ? result.AssetUrl : null;
-            InstallButton.IsVisible = _assetUrl is not null;
+            _packagePath = result.CanInstall ? result.PackagePath : null;
+            InstallButton.IsVisible = _packagePath is not null;
+
+            ReleaseNotesView.Show(Notes, result.ReleaseNotes);
+            NotesCard.IsVisible = result.UpdateAvailable && !string.IsNullOrWhiteSpace(result.ReleaseNotes);
         }
         catch (Exception ex)
         {
@@ -67,7 +73,7 @@ public partial class AboutWindow : ChromeWindow
 
     private async void OnInstallUpdate(object? sender, RoutedEventArgs e)
     {
-        if (_updateService is null || _assetUrl is null) return;
+        if (_packagePath is null) return;
 
         InstallButton.IsEnabled = false;
         UpdateButton.IsEnabled = false;
@@ -81,7 +87,7 @@ public partial class AboutWindow : ChromeWindow
             UpdateResult.Text = L.F("Update_Downloading", (int)(value * 100));
         }));
 
-        var started = await _updateService.DownloadAndApplyAsync(_assetUrl, progress);
+        var started = await UpdateService.DownloadAndApplyAsync(_packagePath, progress);
 
         if (!started)
         {
