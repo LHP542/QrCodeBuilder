@@ -36,7 +36,7 @@
     <PackageVersion Include="NLog" Version="6.2.0" />
 
     <!-- Versionierung -->
-    <PackageVersion Include="MinVer" Version="7.0.0" />
+    <PackageVersion Include="MinVer" Version="8.0.0" />
 
     <!-- Tests (xunit.v3, NICHT das alte "xunit"-Paket, v2 ist deprecated);
          FluentAssertions NICHT auf 8.x heben (Xceed-Lizenz) -->
