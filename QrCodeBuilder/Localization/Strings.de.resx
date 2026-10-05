@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- ============ Fenster ============ -->
+  <data name="Window_About" xml:space="preserve"><value>Über QR Code Builder</value></data>
+  <data name="Window_Settings" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="Window_Update" xml:space="preserve"><value>Update verfügbar</value></data>
+  <data name="Main_Subtitle" xml:space="preserve"><value>QR-Codes erzeugen und als PNG, SVG oder direkt in die Zwischenablage exportieren.</value></data>
+
+  <!-- ============ Inhalt ============ -->
+  <data name="Content_Section" xml:space="preserve"><value>INHALT</value></data>
+  <data name="Kind_Text" xml:space="preserve"><value>Text oder Link</value></data>
+  <data name="Kind_Wifi" xml:space="preserve"><value>WLAN-Zugang</value></data>
+  <data name="Content_Text_Placeholder" xml:space="preserve"><value>https://example.com oder beliebiger Text</value></data>
+  <data name="Content_Text_Hint" xml:space="preserve"><value>Links öffnen sich direkt in der Kamera-App des Handys. Kürzerer Inhalt ergibt einen gröberen, leichter lesbaren Code.</value></data>
+  <data name="Wifi_Ssid" xml:space="preserve"><value>Netzwerkname (SSID)</value></data>
+  <data name="Wifi_Ssid_Placeholder" xml:space="preserve"><value>z. B. Gäste-WLAN</value></data>
+  <data name="Wifi_Security" xml:space="preserve"><value>Verschlüsselung</value></data>
+  <data name="Wifi_Security_Wpa" xml:space="preserve"><value>WPA / WPA2 / WPA3</value></data>
+  <data name="Wifi_Security_Wep" xml:space="preserve"><value>WEP (veraltet)</value></data>
+  <data name="Wifi_Security_None" xml:space="preserve"><value>Keine (offenes Netz)</value></data>
+  <data name="Wifi_Password" xml:space="preserve"><value>Passwort</value></data>
+  <data name="Wifi_Hidden" xml:space="preserve"><value>Verstecktes Netzwerk</value></data>
+  <data name="Wifi_Hint" xml:space="preserve"><value>Android und iOS verbinden sich beim Scannen direkt. Das Passwort wird nicht gespeichert.</value></data>
+
+  <!-- ============ Darstellung ============ -->
+  <data name="Style_Section" xml:space="preserve"><value>DARSTELLUNG</value></data>
+  <data name="Style_ErrorCorrection" xml:space="preserve"><value>Fehlerkorrektur</value></data>
+  <data name="Ecc_L" xml:space="preserve"><value>Niedrig (7 %), kleinster Code</value></data>
+  <data name="Ecc_M" xml:space="preserve"><value>Mittel (15 %), Standard</value></data>
+  <data name="Ecc_Q" xml:space="preserve"><value>Hoch (25 %)</value></data>
+  <data name="Ecc_H" xml:space="preserve"><value>Sehr hoch (30 %), für Druck und Logos</value></data>
+  <data name="Style_ModuleSize" xml:space="preserve"><value>Modulgröße</value></data>
+  <data name="Style_ModuleSize_Value" xml:space="preserve"><value>{0} px pro Modul</value></data>
+  <data name="Style_ModuleSize_ValueWithPixels" xml:space="preserve"><value>{0} px pro Modul · {1} × {1} px</value></data>
+  <data name="Style_Foreground" xml:space="preserve"><value>Vordergrund</value></data>
+  <data name="Style_Background" xml:space="preserve"><value>Hintergrund</value></data>
+  <data name="Style_Color_Hint" xml:space="preserve"><value>Hex-Farbe, z. B. #123E6B. #00FFFFFF macht den Hintergrund transparent.</value></data>
+  <data name="Style_QuietZone" xml:space="preserve"><value>Ruhezone (Rand von 4 Modulen)</value></data>
+
+  <!-- ============ Vorschau und Hinweise ============ -->
+  <data name="Preview_Empty" xml:space="preserve"><value>Links einen Text oder Link eingeben — der Code erscheint hier.</value></data>
+  <data name="Preview_EmptyWifi" xml:space="preserve"><value>Links den Netzwerknamen eingeben — der Code erscheint hier.</value></data>
+  <data name="Preview_Info" xml:space="preserve"><value>Version {0} · {1} × {1} Module · {2} Zeichen</value></data>
+  <data name="Warning_TooLong" xml:space="preserve"><value>Der Inhalt ist zu lang für einen QR-Code mit dieser Fehlerkorrektur. Kürzen oder eine niedrigere Fehlerkorrektur wählen.</value></data>
+  <data name="Warning_Inverted" xml:space="preserve"><value>Der Vordergrund ist heller als der Hintergrund. Viele Scanner lesen invertierte Codes nicht.</value></data>
+  <data name="Warning_LowContrast" xml:space="preserve"><value>Geringer Kontrast zwischen Vorder- und Hintergrund — der Code wird womöglich nicht sicher erkannt.</value></data>
+  <data name="Warning_InvalidColor" xml:space="preserve"><value>{0}: ungültige Farbe, es gilt der Standard.</value></data>
+
+  <!-- ============ Export ============ -->
+  <data name="Export_Section" xml:space="preserve"><value>EXPORT</value></data>
+  <data name="Export_SavePng" xml:space="preserve"><value>Als PNG speichern …</value></data>
+  <data name="Export_SaveSvg" xml:space="preserve"><value>Als SVG speichern …</value></data>
+  <data name="Export_Copy" xml:space="preserve"><value>Bild kopieren</value></data>
+  <data name="Export_Hint" xml:space="preserve"><value>PNG für Bildschirm, E-Mail und Office. SVG skaliert verlustfrei — am besten für den Druck.</value></data>
+  <data name="FileType_Png" xml:space="preserve"><value>PNG-Bild</value></data>
+  <data name="FileType_Svg" xml:space="preserve"><value>SVG-Vektorgrafik</value></data>
+
+  <!-- ============ Statuszeile ============ -->
+  <data name="Status_Ready" xml:space="preserve"><value>Bereit.</value></data>
+  <data name="Status_Saved" xml:space="preserve"><value>Gespeichert: {0} ({1} × {1} px)</value></data>
+  <data name="Status_SaveFailed" xml:space="preserve"><value>Speichern fehlgeschlagen — Details im Log.</value></data>
+  <data name="Status_Copied" xml:space="preserve"><value>Bild in die Zwischenablage kopiert ({0} × {0} px).</value></data>
+  <data name="Status_CopyFailed" xml:space="preserve"><value>Kopieren fehlgeschlagen — Details im Log.</value></data>
+
+  <!-- ============ Einstellungen ============ -->
+  <data name="Settings_Section_UiLanguage" xml:space="preserve"><value>SPRACHE</value></data>
+  <data name="Settings_UiLanguage_Hint" xml:space="preserve"><value>Wirkt sofort in allen Fenstern.</value></data>
+  <data name="Common_Close" xml:space="preserve"><value>Schließen</value></data>
+  <data name="Common_Later" xml:space="preserve"><value>Später</value></data>
+
+  <!-- ============ Tray ============ -->
+  <data name="Tray_Show" xml:space="preserve"><value>Anzeigen</value></data>
+  <data name="Tray_Quit" xml:space="preserve"><value>Beenden</value></data>
+
+  <!-- ============ Über und Update ============ -->
+  <data name="About_Tagline" xml:space="preserve"><value>QR-Codes erzeugen und als PNG oder SVG exportieren.</value></data>
+  <data name="About_CheckUpdates" xml:space="preserve"><value>Auf Updates prüfen</value></data>
+  <data name="About_Checking" xml:space="preserve"><value>Prüfe …</value></data>
+  <data name="About_UpdateAvailable" xml:space="preserve"><value>Version {0} verfügbar!</value></data>
+  <data name="About_NoAccess" xml:space="preserve"><value>Kein Zugriff auf GitHub.</value></data>
+  <data name="About_UpToDate" xml:space="preserve"><value>Du hast die aktuelle Version.</value></data>
+  <data name="About_CheckFailed" xml:space="preserve"><value>Prüfung fehlgeschlagen.</value></data>
+  <data name="About_Version" xml:space="preserve"><value>Version {0}</value></data>
+  <data name="About_License" xml:space="preserve"><value>MIT-Lizenz · © 2026 Lars Krügel (Kroste)</value></data>
+  <data name="Update_Install" xml:space="preserve"><value>⬇  Update installieren</value></data>
+  <data name="Update_Headline" xml:space="preserve"><value>Version {0} ist verfügbar</value></data>
+  <data name="Update_Body" xml:space="preserve"><value>Du nutzt Version {0}. QR Code Builder lädt das Update, installiert es und startet sich neu.</value></data>
+  <data name="Update_Downloading" xml:space="preserve"><value>Lädt … {0} %</value></data>
+  <data name="Update_Restarting" xml:space="preserve"><value>Update geladen — QR Code Builder startet neu.</value></data>
+  <data name="Update_Failed" xml:space="preserve"><value>Update fehlgeschlagen — Details im Log.</value></data>
+</root>

@@ -1,0 +1,7 @@
+# Shell-Skripte und AppRun müssen auch bei core.autocrlf=true mit LF ausgecheckt
+# werden, sonst bricht bash am Wagenrücklauf ab.
+*.sh text eol=lf
+packaging/linux/AppRun text eol=lf
+*.desktop text eol=lf
+*.png binary
+*.ico binary

@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Kleingeschrieben wie die Datei: auf Linux ist das Dateisystem case-sensitiv,
+         ein abweichender Name bricht den Build mit MSB4018. -->
+    <ApplicationIcon>Assets/qrcodebuilder.ico</ApplicationIcon>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- Arbeitslaptop-Workaround (Sophos korrumpiert apphost.exe) bei Bedarf:
+         <UseAppHost>false</UseAppHost> -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets/**" />
+    <None Update="nlog.config" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Assets/qrcodebuilder.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="NLog" />
+    <PackageReference Include="QRCoder" />
+    <!-- Kommt transitiv über Avalonia.FreeDesktop, steht aber explizit hier,
+         damit die Version in Directory.Packages.props überhaupt greift: der
+         Tray unter Linux hängt daran. -->
+    <PackageReference Include="Tmds.DBus.Protocol" />
+  </ItemGroup>
+
+  <!-- DevTools nur im Debug-Build -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="QrCodeBuilder.Tests" />
+  </ItemGroup>
+</Project>

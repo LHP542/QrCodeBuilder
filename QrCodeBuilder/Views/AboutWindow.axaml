@@ -1,0 +1,55 @@
+<views:ChromeWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:QrCodeBuilder.Views"
+        xmlns:controls="using:QrCodeBuilder.Controls"
+        xmlns:loc="using:QrCodeBuilder.Localization"
+        x:Class="QrCodeBuilder.Views.AboutWindow"
+        Width="420" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="{loc:Tr Window_About}"
+        Background="{DynamicResource KrosteBackgroundBrush}">
+    <DockPanel>
+        <controls:TitleBar DockPanel.Dock="Top" Title="{loc:Tr Window_About}" />
+        <StackPanel Margin="24" Spacing="16">
+            <StackPanel Spacing="4">
+                <TextBlock Text="QR Code Builder" Classes="h1" FontSize="22" />
+                <TextBlock Text="{loc:Tr About_Tagline}"
+                           Classes="secondary" TextWrapping="Wrap" />
+                <TextBlock x:Name="VersionText" Classes="muted" FontSize="12" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <Rectangle Classes="divider-h" />
+
+            <StackPanel Spacing="10">
+                <!-- WrapPanel statt StackPanel: ein StackPanel schneidet ab, was nicht passt. -->
+                <WrapPanel Orientation="Horizontal">
+                    <Button x:Name="UpdateButton" Classes="accent" Margin="0,0,10,6"
+                            Content="{loc:Tr About_CheckUpdates}" />
+                    <TextBlock x:Name="UpdateResult" VerticalAlignment="Center" Classes="secondary"
+                               Margin="0,0,0,6" TextWrapping="Wrap" />
+                </WrapPanel>
+
+                <!-- Erscheint erst, wenn die Prüfung ein passendes Asset gefunden hat.
+                     Ohne diesen Knopf wäre der Dialog eine reine Benachrichtigung — der
+                     Kroste-Standard verlangt echtes Self-Update. -->
+                <Button x:Name="InstallButton" Classes="accent"
+                        Content="{loc:Tr Update_Install}" IsVisible="False"
+                        HorizontalAlignment="Left" />
+                <ProgressBar x:Name="UpdateProgress" IsVisible="False"
+                             Minimum="0" Maximum="1" />
+            </StackPanel>
+
+            <WrapPanel Orientation="Horizontal">
+                <Button x:Name="GithubButton" Content="GitHub" Margin="0,0,10,6" />
+            </WrapPanel>
+
+            <TextBlock Text="{loc:Tr About_License}"
+                       Classes="muted" FontSize="11" />
+
+            <!-- Eigene Zeile unten rechts: konkurriert nie mit anderen Knöpfen um die Breite. -->
+            <Button x:Name="CloseButton" Classes="ghost" Content="{loc:Tr Common_Close}"
+                    HorizontalAlignment="Right" />
+        </StackPanel>
+    </DockPanel>
+</views:ChromeWindow>

@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Native Builds pro OS mit Tests, Linux zusätzlich als AppImage.
+#
+# Jeder Job hängt seine Pakete direkt ans Release (kein upload-artifact-Umweg:
+# der zählt auf die kontoweite Artefakt-Quota). Die Jobs laufen nacheinander,
+# damit sie nicht um die Erstellung desselben Releases rennen.
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # MinVer braucht die Historie inkl. Tags
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: Directory.Packages.props
+
+      - name: Version ermitteln
+        id: ver
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "v=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "v=0.0.0-dev.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Test
+        run: dotnet test QrCodeBuilder.Tests/QrCodeBuilder.Tests.csproj -c Release
+
+      - name: Publish (win-x64)
+        run: >
+          dotnet publish QrCodeBuilder/QrCodeBuilder.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true
+          -p:Version=${{ steps.ver.outputs.v }}
+          -o publish/win-x64
+
+      - name: ZIP packen
+        shell: pwsh
+        run: Compress-Archive -Path publish/win-x64/* -DestinationPath "QrCodeBuilder-${{ steps.ver.outputs.v }}-win-x64.zip"
+
+      - name: Ans Release anhängen
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v3
+        with:
+          files: QrCodeBuilder-*-win-x64.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+  build-linux:
+    needs: build-windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: Directory.Packages.props
+
+      - name: Version ermitteln
+        id: ver
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "v=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "v=0.0.0-dev.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Test
+        run: dotnet test QrCodeBuilder.Tests/QrCodeBuilder.Tests.csproj -c Release
+
+      - name: Publish (linux-x64)
+        run: >
+          dotnet publish QrCodeBuilder/QrCodeBuilder.csproj
+          -c Release -r linux-x64 --self-contained true
+          -p:PublishSingleFile=true
+          -p:Version=${{ steps.ver.outputs.v }}
+          -o publish/linux-x64
+
+      - name: Tarball packen
+        run: tar -czf "QrCodeBuilder-${{ steps.ver.outputs.v }}-linux-x64.tar.gz" -C publish/linux-x64 .
+
+      - name: AppImage bauen
+        run: bash packaging/linux/build-appimage.sh "${{ steps.ver.outputs.v }}" publish/linux-x64
+
+      - name: Ans Release anhängen
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            QrCodeBuilder-*-linux-x64.tar.gz
+            QrCodeBuilder-*-x86_64.AppImage
+          generate_release_notes: true
+          fail_on_unmatched_files: true

@@ -1,0 +1,31 @@
+<views:ChromeWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:QrCodeBuilder.Views"
+        xmlns:controls="using:QrCodeBuilder.Controls"
+        xmlns:loc="using:QrCodeBuilder.Localization"
+        x:Class="QrCodeBuilder.Views.UpdatePromptWindow"
+        Width="420" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="{loc:Tr Window_Update}"
+        Background="{DynamicResource KrosteBackgroundBrush}">
+    <DockPanel>
+        <controls:TitleBar DockPanel.Dock="Top" Title="{loc:Tr Window_Update}" />
+
+        <StackPanel Margin="22" Spacing="14">
+            <StackPanel Spacing="6">
+                <TextBlock x:Name="Headline" Classes="h2" TextWrapping="Wrap" />
+                <TextBlock x:Name="Body" Classes="secondary" TextWrapping="Wrap" FontSize="12" />
+            </StackPanel>
+
+            <ProgressBar x:Name="Progress" IsVisible="False" Minimum="0" Maximum="1" />
+            <TextBlock x:Name="Status" Classes="muted" FontSize="11" IsVisible="False" />
+
+            <!-- WrapPanel statt StackPanel: lange Beschriftungen brechen um statt abgeschnitten zu werden. -->
+            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="LaterButton" Classes="ghost" Margin="0,0,10,0" Content="{loc:Tr Common_Later}" />
+                <Button x:Name="InstallButton" Classes="accent" Content="{loc:Tr Update_Install}" />
+            </WrapPanel>
+        </StackPanel>
+    </DockPanel>
+</views:ChromeWindow>

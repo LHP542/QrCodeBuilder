@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=QrCodeBuilder
+Comment=QR-Codes erzeugen und als PNG oder SVG exportieren
+Exec=QrCodeBuilder
+Icon=qrcodebuilder
+Type=Application
+Categories=Utility;
+Terminal=false

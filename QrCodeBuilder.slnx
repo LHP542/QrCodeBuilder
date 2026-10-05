@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="QrCodeBuilder/QrCodeBuilder.csproj" />
+  <Project Path="QrCodeBuilder.Tests/QrCodeBuilder.Tests.csproj" />
+</Solution>

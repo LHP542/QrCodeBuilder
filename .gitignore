@@ -1,0 +1,13 @@
+bin/
+obj/
+publish/
+*.user
+.vs/
+.idea/
+# Lokaler NuGet-Offline-Feed (Arbeitslaptop) — nie einchecken
+NuGet-Local/
+# Laufzeit-Ausgaben, die beim lokalen Start bzw. Testlauf entstehen
+logs/
+TestResults/
+# Bilder aus dem Werkzeugmodus --screenshots
+screenshots/

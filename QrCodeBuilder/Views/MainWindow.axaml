@@ -1,0 +1,195 @@
+<views:ChromeWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:QrCodeBuilder.Views"
+        xmlns:controls="using:QrCodeBuilder.Controls"
+        xmlns:vm="using:QrCodeBuilder.ViewModels"
+        xmlns:loc="using:QrCodeBuilder.Localization"
+        x:Class="QrCodeBuilder.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Width="1060" Height="800"
+        MinWidth="860" MinHeight="600"
+        Title="QR Code Builder"
+        Background="{DynamicResource KrosteBackgroundBrush}">
+
+    <Window.DataTemplates>
+        <!-- Beschriftung der ComboBox-Einträge: LocalizedString folgt dem Sprachwechsel live. -->
+        <DataTemplate DataType="vm:LocalizedChoice">
+            <TextBlock Text="{Binding Label.Value}" />
+        </DataTemplate>
+    </Window.DataTemplates>
+
+    <DockPanel>
+        <controls:TitleBar DockPanel.Dock="Top" Title="QR Code Builder" />
+
+        <!-- Statuszeile -->
+        <Border DockPanel.Dock="Bottom"
+                BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource KrosteBorderBrush}"
+                Background="{DynamicResource KrosteTitleBarBrush}"
+                Padding="16,7">
+            <TextBlock Text="{Binding StatusText}" Classes="secondary" FontSize="12"
+                       TextTrimming="CharacterEllipsis" />
+        </Border>
+
+        <DockPanel Margin="18">
+
+            <!-- Kopfzeile -->
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,14">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="QR Code Builder" Classes="h1" />
+                    <TextBlock Text="{loc:Tr Main_Subtitle}" Classes="secondary" TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <Button Classes="ghost" Content="⚙" FontSize="15" Padding="10,6"
+                            ToolTip.Tip="{loc:Tr Window_Settings}"
+                            Click="OnOpenSettings" />
+                    <Button Classes="ghost" Content="ⓘ" FontSize="15" Padding="10,6"
+                            ToolTip.Tip="{loc:Tr Window_About}"
+                            Click="OnOpenAbout" />
+                </StackPanel>
+            </Grid>
+
+            <Grid ColumnDefinitions="390,18,*">
+
+                <!-- ============ Linke Spalte: Inhalt und Darstellung ============ -->
+                <!-- Rechter Rand für den Rollbalken: Avalonia legt ihn ÜBER den Inhalt. -->
+                <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="12" Margin="0,0,14,0">
+
+                        <Border Classes="card">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="{loc:Tr Content_Section}" Classes="section-label" />
+
+                                <ComboBox ItemsSource="{Binding ContentKinds}"
+                                          SelectedItem="{Binding SelectedContentKind}"
+                                          HorizontalAlignment="Stretch" />
+
+                                <!-- Text / Link -->
+                                <StackPanel Spacing="6" IsVisible="{Binding IsTextMode}">
+                                    <TextBox Text="{Binding Text}"
+                                             PlaceholderText="{loc:Tr Content_Text_Placeholder}"
+                                             AcceptsReturn="True" TextWrapping="Wrap"
+                                             MinHeight="120" MaxHeight="260" />
+                                    <TextBlock Text="{loc:Tr Content_Text_Hint}" Classes="muted"
+                                               FontSize="11" TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <!-- WLAN -->
+                                <StackPanel Spacing="8" IsVisible="{Binding IsWifiMode}">
+                                    <TextBlock Text="{loc:Tr Wifi_Ssid}" Classes="secondary" FontSize="12" />
+                                    <TextBox Text="{Binding WifiSsid}"
+                                             PlaceholderText="{loc:Tr Wifi_Ssid_Placeholder}" />
+
+                                    <TextBlock Text="{loc:Tr Wifi_Security}" Classes="secondary" FontSize="12" />
+                                    <ComboBox ItemsSource="{Binding WifiSecurities}"
+                                              SelectedItem="{Binding SelectedWifiSecurity}"
+                                              HorizontalAlignment="Stretch" />
+
+                                    <TextBlock Text="{loc:Tr Wifi_Password}" Classes="secondary" FontSize="12" />
+                                    <TextBox Text="{Binding WifiPassword}" PasswordChar="●"
+                                             Classes="revealPasswordButton"
+                                             IsEnabled="{Binding IsWifiPasswordEnabled}" />
+
+                                    <CheckBox IsChecked="{Binding WifiHidden}"
+                                              Content="{loc:Tr Wifi_Hidden}" />
+                                    <TextBlock Text="{loc:Tr Wifi_Hint}" Classes="muted"
+                                               FontSize="11" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="card">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="{loc:Tr Style_Section}" Classes="section-label" />
+
+                                <TextBlock Text="{loc:Tr Style_ErrorCorrection}" Classes="secondary" FontSize="12" />
+                                <ComboBox ItemsSource="{Binding ErrorCorrections}"
+                                          SelectedItem="{Binding SelectedErrorCorrection}"
+                                          HorizontalAlignment="Stretch" />
+
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                                    <TextBlock Grid.Column="0" Text="{loc:Tr Style_ModuleSize}"
+                                               Classes="secondary" FontSize="12" />
+                                    <TextBlock Grid.Column="1" Text="{Binding ExportSizeText}"
+                                               Classes="muted" FontSize="12" />
+                                </Grid>
+                                <Slider Minimum="1" Maximum="40" TickFrequency="1"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding ModuleSize}" />
+
+                                <Grid ColumnDefinitions="*,10,*" RowDefinitions="Auto,Auto" Margin="0,4,0,0">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Tr Style_Foreground}"
+                                               Classes="secondary" FontSize="12" Margin="0,0,0,4" />
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="{loc:Tr Style_Background}"
+                                               Classes="secondary" FontSize="12" Margin="0,0,0,4" />
+
+                                    <Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="*,6,30">
+                                        <TextBox Grid.Column="0" Text="{Binding ForegroundHex}"
+                                                 Classes="mono" />
+                                        <Border Grid.Column="2" Classes="swatch"
+                                                Background="{Binding ForegroundHex, Converter={x:Static views:HexToBrushConverter.Instance}}" />
+                                    </Grid>
+                                    <Grid Grid.Row="1" Grid.Column="2" ColumnDefinitions="*,6,30">
+                                        <TextBox Grid.Column="0" Text="{Binding BackgroundHex}"
+                                                 Classes="mono" />
+                                        <Border Grid.Column="2" Classes="swatch"
+                                                Background="{Binding BackgroundHex, Converter={x:Static views:HexToBrushConverter.Instance}}" />
+                                    </Grid>
+                                </Grid>
+                                <TextBlock Text="{loc:Tr Style_Color_Hint}" Classes="muted"
+                                           FontSize="11" TextWrapping="Wrap" />
+
+                                <CheckBox IsChecked="{Binding QuietZone}"
+                                          Content="{loc:Tr Style_QuietZone}" Margin="0,4,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ============ Rechte Spalte: Vorschau und Export ============ -->
+                <DockPanel Grid.Column="2">
+
+                    <Border DockPanel.Dock="Bottom" Classes="card" Margin="0,12,0,0">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="{loc:Tr Export_Section}" Classes="section-label" />
+                            <!-- WrapPanel statt StackPanel: lange Beschriftungen brechen um
+                                 statt abgeschnitten zu werden. -->
+                            <WrapPanel Orientation="Horizontal">
+                                <Button Classes="accent" Margin="0,0,8,8"
+                                        Content="{loc:Tr Export_SavePng}"
+                                        Command="{Binding SavePngCommand}" />
+                                <Button Margin="0,0,8,8"
+                                        Content="{loc:Tr Export_SaveSvg}"
+                                        Command="{Binding SaveSvgCommand}" />
+                                <Button Margin="0,0,8,8"
+                                        Content="{loc:Tr Export_Copy}"
+                                        Command="{Binding CopyImageCommand}" />
+                            </WrapPanel>
+                            <TextBlock Text="{loc:Tr Export_Hint}" Classes="muted"
+                                       FontSize="11" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border DockPanel.Dock="Bottom" Classes="warning" Margin="0,12,0,0"
+                            IsVisible="{Binding HasWarning}">
+                        <TextBlock Text="{Binding WarningText}" TextWrapping="Wrap" FontSize="12" />
+                    </Border>
+
+                    <Border Classes="card-flat" Padding="16">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Bottom" Text="{Binding InfoText}"
+                                       Classes="muted" FontSize="12" Margin="0,10,0,0"
+                                       HorizontalAlignment="Center" TextWrapping="Wrap" />
+                            <Border Background="{DynamicResource QrPreviewBackdropBrush}"
+                                    CornerRadius="6" Padding="12">
+                                <Image Source="{Binding PreviewPng, Converter={x:Static views:PngToBitmapConverter.Instance}}"
+                                       Stretch="Uniform" MaxWidth="520" MaxHeight="520"
+                                       RenderOptions.BitmapInterpolationMode="HighQuality" />
+                            </Border>
+                        </DockPanel>
+                    </Border>
+                </DockPanel>
+            </Grid>
+        </DockPanel>
+    </DockPanel>
+</views:ChromeWindow>
