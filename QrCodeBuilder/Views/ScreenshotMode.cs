@@ -108,16 +108,14 @@ internal static class ScreenshotMode
         UpdateAvailable: true,
         LatestVersion: "0.3.0",
         PackagePath: "demo.zip",
-        ReleaseNotes: """
-            ## 0.3.0 — Beispiel
-
-            - Neu: Kontakt (vCard) als Inhaltstyp
-            - Behoben: Dateiname bei sehr langen Links
-
-            ## 0.2.0 — Beispiel
-
-            - Updates und Versionshinweise kommen aus dem Netzwerkordner
-            """);
+        // KEIN Raw-String mit Zeilen, die mit '#' beginnen: im Release-Build ist dieser
+        // #if-DEBUG-Block inaktiv, und dort liest der Compiler jede '#'-Zeile als
+        // Präprozessor-Direktive (CS1024). Debug baut grün, Release rot.
+        ReleaseNotes: "## 0.3.0 — Beispiel\n\n"
+                      + "- Neu: Kontakt (vCard) als Inhaltstyp\n"
+                      + "- Behoben: Dateiname bei sehr langen Links\n\n"
+                      + "## 0.2.0 — Beispiel\n\n"
+                      + "- Updates und Versionshinweise kommen aus dem Netzwerkordner");
 
     /// <summary>
     /// Jedes Bild bekommt frische Einstellungen — sonst übernimmt das nächste Bild die
