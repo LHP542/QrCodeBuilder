@@ -86,7 +86,7 @@
   <data name="About_UpToDate" xml:space="preserve"><value>Du hast die aktuelle Version.</value></data>
   <data name="About_CheckFailed" xml:space="preserve"><value>Prüfung fehlgeschlagen.</value></data>
   <data name="About_Version" xml:space="preserve"><value>Version {0}</value></data>
-  <data name="About_License" xml:space="preserve"><value>MIT-Lizenz · © 2026 Lars Krügel (Kroste)</value></data>
+  <data name="About_License" xml:space="preserve"><value>MIT-Lizenz · © 2026 Lars Oste (Kroste)</value></data>
   <data name="Update_Install" xml:space="preserve"><value>⬇  Update installieren</value></data>
   <data name="Update_Headline" xml:space="preserve"><value>Version {0} ist verfügbar</value></data>
   <data name="Update_Body" xml:space="preserve"><value>Du nutzt Version {0}. QR Code Builder lädt das Update, installiert es und startet sich neu.</value></data>
