@@ -187,15 +187,21 @@ dotnet run --project QrCodeBuilder
    bricht das Release ab.
 2. VS-Code-Task „release (tag + push)" — prüft den Git-Zustand, setzt den Tag
    und stößt die GitHub-Action an, die alle Pakete und die Notes-Datei baut.
-3. Wenn die Action grün ist, auf den Share bringen:
+3. Wenn die Action grün ist, die Dateien des Releases (`…-win-x64.zip`,
+   `…-notes.md`, optional die Linux-Pakete) von der
+   [Releases-Seite](https://github.com/LHP542/QrCodeBuilder/releases) in einen
+   Ordner laden — auf dem Arbeitslaptop über den Citrix-Browser, weil der Proxy
+   `.zip` und `.tar.gz` von GitHub blockt. Dann auf den Share bringen:
 
    ```powershell
-   scripts\publish-share.ps1 -Version X.Y.Z
+   scripts\publish-share.ps1 -Version X.Y.Z -Source $HOME\Downloads
    ```
 
-   Das Skript kopiert zuerst die Versionshinweise, dann die Pakete (über einen
+   Das Skript prüft jede Datei gegen die SHA-256-Prüfsumme des GitHub-Releases,
+   kopiert zuerst die Versionshinweise und dann die Pakete (über einen
    Zwischennamen, damit kein Client ein halb kopiertes Paket sieht). Ab dann
-   bieten die Clients das Update beim nächsten Start an.
+   bieten die Clients das Update beim nächsten Start an. Ohne `-Source` lädt
+   das Skript selbst per `gh` — das geht nur außerhalb des Firmen-Proxys.
 
 ### Bilder neu erzeugen
 

@@ -1,11 +1,20 @@
 ﻿# Bringt ein fertiges GitHub-Release auf den Update-Share, von dem die App ihre
 # Updates bezieht.
 #
-#   scripts\publish-share.ps1 -Version 0.2.0
-#   scripts\publish-share.ps1 -Version 0.2.0 -Share D:\Test\Rollout   # Probelauf
+#   scripts\publish-share.ps1 -Version 0.2.0 -Source $HOME\Downloads
+#   scripts\publish-share.ps1 -Version 0.2.0                          # lädt selbst per gh
+#   scripts\publish-share.ps1 -Version 0.2.0 -Source … -Share D:\Test  # Probelauf
 #
-# Ablauf: Pakete und Versionshinweise des Tags v<Version> per gh herunterladen
-# und in den Share kopieren. Reihenfolge und Kopierweg sind Absicht:
+# -Source: Ordner, in den die Release-Dateien von Hand geladen wurden. Auf dem
+# Arbeitslaptop ist das der normale Weg — der Firmen-Proxy blockt .zip und
+# .tar.gz von GitHub (403, Inhaltsfilter), also über den Citrix-Browser laden.
+# Ohne -Source versucht das Skript den Download per gh.
+#
+# Jede Datei wird gegen die SHA-256-Prüfsumme geprüft, die GitHub zum Release
+# speichert (die Metadaten kommen durch den Proxy). Auf dem Share landet damit
+# genau das, was die CI gebaut hat — kein lokal gebautes, kein falsches Paket.
+#
+# Reihenfolge und Kopierweg sind Absicht:
 #   1. ZUERST die Notes — sonst sieht ein Client, der genau dazwischen prüft,
 #      das neue Paket ohne Versionshinweise.
 #   2. Pakete erst unter .tmp-Namen kopieren und dann umbenennen. Die App sucht
@@ -17,6 +26,8 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^\d+\.\d+\.\d+$')]
     [string]$Version,
+
+    [string]$Source,
 
     [string]$Share = '\\samba01\542$\5424_IT-Basis-Dienste\QrCodeBuilder',
 
@@ -30,31 +41,64 @@ if (-not (Test-Path -LiteralPath $Share)) {
     throw "Share nicht erreichbar: $Share"
 }
 
-$arbeit = Join-Path ([System.IO.Path]::GetTempPath()) "QrCodeBuilder-publish-$Version"
-if (Test-Path $arbeit) { Remove-Item $arbeit -Recurse -Force }
-New-Item -ItemType Directory -Path $arbeit | Out-Null
+# Was gehört zum Release, mit welcher Prüfsumme?
+$json = gh api "repos/$Repo/releases/tags/v$Version"
+if ($LASTEXITCODE -ne 0) { throw "Release v$Version in $Repo nicht gefunden." }
+$assets = ($json | ConvertFrom-Json).assets |
+    Where-Object { $_.name -like "QrCodeBuilder-$Version-*" }
 
-Write-Host "Lade Release v$Version aus $Repo …"
-gh release download "v$Version" --repo $Repo --dir $arbeit `
-    --pattern "QrCodeBuilder-$Version-*"
-if ($LASTEXITCODE -ne 0) { throw "gh release download ist fehlgeschlagen (Exitcode $LASTEXITCODE)." }
+$notesName = "QrCodeBuilder-$Version-notes.md"
+$zipName = "QrCodeBuilder-$Version-win-x64.zip"
 
-$notes = Join-Path $arbeit "QrCodeBuilder-$Version-notes.md"
-if (-not (Test-Path $notes)) {
-    throw "Zum Release gehört keine Notes-Datei — ohne Versionshinweise wird nicht veröffentlicht."
+foreach ($pflicht in @($notesName, $zipName)) {
+    if (-not ($assets | Where-Object { $_.name -eq $pflicht })) {
+        throw "Zum Release gehört kein $pflicht — so wird nicht veröffentlicht."
+    }
 }
 
-$pakete = Get-ChildItem $arbeit -File | Where-Object { $_.Name -notlike '*-notes.md' }
-if (-not ($pakete | Where-Object { $_.Name -like '*-win-x64.zip' })) {
-    throw "Das Windows-Paket fehlt im Release."
+if (-not $Source) {
+    $Source = Join-Path ([System.IO.Path]::GetTempPath()) "QrCodeBuilder-publish-$Version"
+    if (Test-Path $Source) { Remove-Item $Source -Recurse -Force }
+    New-Item -ItemType Directory -Path $Source | Out-Null
+
+    Write-Host "Lade Release v$Version aus $Repo …"
+    gh release download "v$Version" --repo $Repo --dir $Source --pattern "QrCodeBuilder-$Version-*"
+    if ($LASTEXITCODE -ne 0) {
+        throw ("Download fehlgeschlagen. Auf dem Arbeitslaptop blockt der Proxy .zip/.tar.gz — " +
+               "die Dateien über den Citrix-Browser laden und mit -Source <Ordner> erneut aufrufen.")
+    }
+}
+
+# Prüfen, BEVOR irgendetwas auf den Share geht.
+$geprueft = @()
+foreach ($asset in $assets) {
+    $datei = Join-Path $Source $asset.name
+
+    if (-not (Test-Path -LiteralPath $datei)) {
+        if ($asset.name -in @($notesName, $zipName)) {
+            throw "$($asset.name) fehlt in $Source."
+        }
+        Write-Warning "$($asset.name) fehlt in $Source — wird ausgelassen (nur für Linux)."
+        continue
+    }
+
+    $soll = ($asset.digest -replace '^sha256:', '').ToLowerInvariant()
+    $ist = (Get-FileHash -LiteralPath $datei -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($ist -ne $soll) {
+        throw "$($asset.name): Prüfsumme stimmt nicht mit dem GitHub-Release überein — nicht veröffentlicht."
+    }
+
+    Write-Host "geprüft: $($asset.name)"
+    $geprueft += Get-Item -LiteralPath $datei
 }
 
 # 1. Notes zuerst.
-Copy-Item -LiteralPath $notes -Destination $Share -Force
-Write-Host "kopiert: $(Split-Path $notes -Leaf)"
+$notes = $geprueft | Where-Object { $_.Name -eq $notesName }
+Copy-Item -LiteralPath $notes.FullName -Destination $Share -Force
+Write-Host "kopiert: $notesName"
 
 # 2. Pakete über einen Zwischennamen.
-foreach ($paket in $pakete) {
+foreach ($paket in ($geprueft | Where-Object { $_.Name -ne $notesName })) {
     $ziel = Join-Path $Share $paket.Name
     $zwischen = "$ziel.tmp"
     Copy-Item -LiteralPath $paket.FullName -Destination $zwischen -Force
@@ -62,7 +106,6 @@ foreach ($paket in $pakete) {
     Write-Host "kopiert: $($paket.Name) ($([math]::Round($paket.Length / 1MB, 1)) MB)"
 }
 
-Remove-Item $arbeit -Recurse -Force
 Write-Host ""
 Write-Host "Version $Version liegt in $Share."
 Write-Host "Die Clients bieten das Update beim nächsten Start an."
